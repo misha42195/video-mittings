@@ -28,9 +28,10 @@ npm run build          # build both apps
 npm run lint            # lint both apps
 npm run format            # format both apps
 npm run typecheck          # typecheck both apps
+npm run test            # run tests (currently apps/api only — apps/web has none yet)
 ```
 
-Each of `lint`, `format`, `typecheck`, and `build` also has `:web` / `:api` variants (e.g. `npm run lint:api`) to target a single app — see each app's own CLAUDE.md for the underlying per-app commands (eslint/prettier/tsc for web, ruff/mypy/uv for api).
+Each of `lint`, `format`, `typecheck`, and `build` also has `:web` / `:api` variants (e.g. `npm run lint:api`) to target a single app — see each app's own CLAUDE.md for the underlying per-app commands (eslint/prettier/tsc for web, ruff/mypy/uv for api). `test` currently only has a `test:api` variant since `apps/web` has no test suite yet; `apps/api`'s tests need `docker-compose up -d` (postgres) running first.
 
 ## Keeping docs in sync
 
