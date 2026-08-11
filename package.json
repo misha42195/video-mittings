@@ -1,0 +1,29 @@
+{
+  "name": "video-meetings",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "npm run dev --workspace=web",
+    "dev:api": "cd apps/api && uv run fastapi dev src/api/main.py",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "npm run build --workspace=web",
+    "build:api": "cd apps/api && uv build",
+    "lint": "npm run lint:web && npm run lint:api",
+    "lint:web": "npm run lint --workspace=web",
+    "lint:api": "cd apps/api && uv run ruff check .",
+    "format": "npm run format:web && npm run format:api",
+    "format:web": "npm run format --workspace=web",
+    "format:api": "cd apps/api && uv run ruff format .",
+    "typecheck": "npm run typecheck:web && npm run typecheck:api",
+    "typecheck:web": "npm run typecheck --workspace=web",
+    "typecheck:api": "cd apps/api && uv run mypy src"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

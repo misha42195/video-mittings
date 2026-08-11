@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_input.notebook_path // empty' | { read -r f; [ -z \"$f\" ] && exit 0; root=\"${CLAUDE_PROJECT_DIR:-/home/misha/PycharmProjects/video-meetings}\"; case \"$f\" in \"$root\"/apps/web/*) case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.css|*.json|*.md) \"$root/node_modules/.bin/prettier\" --write \"$f\" ;; esac ;; \"$root\"/apps/api/*) case \"$f\" in *.py) (cd \"$root/apps/api\" && uv run ruff format \"$f\") ;; esac ;; esac; } 2>/dev/null || true",
+            "statusMessage": "Formatting changed file..."
+          }
+        ]
+      }
+    ]
+  }
+}
