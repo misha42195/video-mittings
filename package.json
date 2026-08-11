@@ -21,7 +21,9 @@
     "format:api": "cd apps/api && uv run ruff format .",
     "typecheck": "npm run typecheck:web && npm run typecheck:api",
     "typecheck:web": "npm run typecheck --workspace=web",
-    "typecheck:api": "cd apps/api && uv run mypy src"
+    "typecheck:api": "cd apps/api && uv run mypy src",
+    "test": "npm run test:api",
+    "test:api": "cd apps/api && uv run pytest"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

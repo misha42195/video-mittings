@@ -12,3 +12,6 @@ Thumbs.db
 
 # dependencies
 node_modules/
+
+# local env
+.env

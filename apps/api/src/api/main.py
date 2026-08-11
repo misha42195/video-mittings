@@ -1,6 +1,21 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI(title="API")
+from api.database import Base, engine
+from api.routers.auth import router as auth_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="API", lifespan=lifespan)
+app.include_router(auth_router)
 
 
 @app.get("/health")
