@@ -1,5 +1,5 @@
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -51,3 +51,32 @@ async def client(db: AsyncSession) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+async def _register_and_login(
+    client: AsyncClient, email: str, password: str = "supersecret123"
+) -> str:
+    await client.post("/auth/register", json={"email": email, "password": password})
+    login_response = await client.post(
+        "/auth/login", data={"username": email, "password": password}
+    )
+    token: str = login_response.json()["access_token"]
+    return token
+
+
+@pytest.fixture
+def register_user(client: AsyncClient) -> Callable[[str], Awaitable[dict[str, str]]]:
+    """Registers+logs in a fresh user and returns Bearer auth headers for them."""
+
+    async def _register(email: str) -> dict[str, str]:
+        token = await _register_and_login(client, email)
+        return {"Authorization": f"Bearer {token}"}
+
+    return _register
+
+
+@pytest.fixture
+async def auth_headers(
+    register_user: Callable[[str], Awaitable[dict[str, str]]],
+) -> dict[str, str]:
+    return await register_user("meetings-owner@example.com")

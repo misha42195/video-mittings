@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from api.database import Base, engine
 from api.routers.auth import router as auth_router
+from api.routers.meetings import router as meetings_router
 
 
 @asynccontextmanager
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="API", lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(meetings_router)
 
 
 @app.get("/health")

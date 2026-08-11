@@ -6,3 +6,7 @@ class EmailAlreadyRegisteredError(Exception):
 
 class InvalidCredentialsError(Exception):
     pass
+
+
+class MeetingNotFoundError(Exception):
+    pass
