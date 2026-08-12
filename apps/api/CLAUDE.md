@@ -20,9 +20,9 @@ Copy `.env.example` to `.env` before running the dev server or tests (`DATABASE_
 
 ## Architecture
 
-Single-package FastAPI service (`src/api/main.py`, `app = FastAPI(...)`), routes added via routers as the service grows.
+Single-package FastAPI service (`src/api/main.py`, `app = FastAPI(...)`), routes added via routers as the service grows. `main.py` also wires `CORSMiddleware` (origins from `Settings.cors_allow_origins`) so the browser-based `apps/web` client can call the API cross-origin in dev.
 
-- `config.py` — `pydantic-settings` `Settings` (env-driven: `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ACCESS_TOKEN_EXPIRES_MINUTES`), cached via `get_settings()`.
+- `config.py` — `pydantic-settings` `Settings` (env-driven: `DATABASE_URL`, `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `JWT_ACCESS_TOKEN_EXPIRES_MINUTES`, `CORS_ALLOW_ORIGINS` — defaults to `["http://localhost:3000"]`, the web app's dev origin), cached via `get_settings()`.
 - `database.py` — async SQLAlchemy engine/session (`asyncpg` driver), `Base`, `get_db` dependency. Tables are created on startup via the app's `lifespan`.
 - `models.py` — SQLAlchemy models: `User`, `Meeting` (`owner_id` FK to `users.id`; every meeting belongs to exactly one user).
 - `schemas.py` — Pydantic request/response models (the HTTP-facing DTOs — kept separate from the commands/queries below): `UserRegister`/`Token` for auth, `MeetingCreate`/`MeetingResponse` for meetings.
