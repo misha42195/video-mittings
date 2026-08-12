@@ -35,6 +35,24 @@ Single-package FastAPI service (`src/api/main.py`, `app = FastAPI(...)`), routes
 
 `[tool.ruff.lint]` selects `E, F, I, UP, B`. `[tool.mypy]` runs in `strict = true` mode — new code must be fully typed.
 
+## CQRS pattern
+
+Every use case that touches data is split into a **command** (write) or **query** (read):
+
+- A frozen `@dataclass(frozen=True, slots=True)` describing the input — e.g. `CreateMeetingCommand`, `ListMeetingsQuery`.
+- A `<Name>Handler` class next to it, constructed with `db: AsyncSession`, exposing a single `async def handle(self, command_or_query) -> ...`.
+
+Commands live in `commands.py`, queries in `queries.py`. Handlers are plain Python + SQLAlchemy — no `Request`, no `HTTPException`, no FastAPI dependency injection — which is what makes them directly unit-testable without spinning up HTTP (see `tests/test_auth_handlers.py`). Commands mutate state and return the persisted model (or a `Token`); queries only read and never call `db.add`/`db.commit`.
+
+Routers (`routers/*.py`) are the only layer that knows about HTTP: a route builds the command/query from the validated Pydantic payload plus the `CurrentUser`/`DbDep` dependencies, calls `Handler(db).handle(...)`, and translates domain exceptions from `exceptions.py` into `HTTPException`s (see e.g. `EmailAlreadyRegisteredError` → 409, `MeetingNotFoundError` → 404). Routers never touch `AsyncSession` queries directly.
+
+Conventions for adding a new use case:
+
+- Name the dataclass `<Verb><Noun>Command` or `<Verb><Noun>Query`.
+- Put the pair in `commands.py` if it mutates state, `queries.py` if it's read-only — never mix a write into a query handler.
+- Raise/add domain exceptions in `exceptions.py` instead of raising `HTTPException` from a handler; let the router do that translation.
+- Scope any command/query touching user-owned rows by `owner_id` in the query itself (see `ListMeetingsQuery`, `GetMeetingQuery`) so ownership is enforced in the handler, not reconstructed in the router.
+
 ## Tests
 
 `tests/` has two layers:
