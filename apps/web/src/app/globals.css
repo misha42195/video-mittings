@@ -4,6 +4,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* HeroUI's default --danger (oklch(0.6532 0.2328 25.74), rgb(255 56 60))
+     is only ~3.57:1 on white — below the 4.5:1 WCAG AA minimum for text.
+     Darkened to the same hue for ~5.7:1 while still reading as "danger" red. */
+  --danger: rgb(200 30 34);
 }
 
 @theme inline {

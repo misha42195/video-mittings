@@ -108,116 +108,125 @@ export default function RegisterPage() {
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-12">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-32 -left-24 size-96 rounded-full bg-accent/25 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 -bottom-32 size-96 rounded-full bg-accent/15 blur-3xl"
-      />
+      <div className="relative w-full max-w-md">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -left-16 size-72 rounded-full bg-accent/25 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -bottom-16 size-72 rounded-full bg-accent/15 blur-3xl"
+        />
 
-      <Card className="relative w-full max-w-md">
-        <Card.Header>
-          <Card.Title>Создать аккаунт</Card.Title>
-          <Card.Description>
-            Введите email и пароль, чтобы зарегистрироваться
-          </Card.Description>
-        </Card.Header>
+        <Card className="relative w-full">
+          <Card.Header>
+            <Card.Title>Создать аккаунт</Card.Title>
+            <Card.Description>
+              Введите email и пароль, чтобы зарегистрироваться
+            </Card.Description>
+          </Card.Header>
 
-        <Form className="contents" onSubmit={onSubmit}>
-          <Card.Content>
-            <div className="flex flex-col gap-4">
-              {formError ? (
-                <Alert status="danger">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Description>{formError}</Alert.Description>
-                  </Alert.Content>
-                </Alert>
-              ) : null}
+          <Form className="contents" onSubmit={onSubmit}>
+            <Card.Content>
+              <div className="flex flex-col gap-4">
+                {formError ? (
+                  <Alert status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Description>{formError}</Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                ) : null}
 
-              <TextField
-                isRequired
-                isInvalid={Boolean(emailError)}
-                name="email"
-                type="email"
-                onBlur={(e) => {
-                  const value = e.target.value;
-                  if (value) {
-                    setEmailError(
-                      EMAIL_PATTERN.test(value)
-                        ? null
-                        : "Введите корректный email",
-                    );
-                  }
-                }}
-                onChange={() => setEmailError(null)}
-              >
-                <Label>Email</Label>
-                <Input
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  variant="secondary"
-                />
-                {emailError ? (
-                  <FieldError>{emailError}</FieldError>
-                ) : (
-                  <FieldError />
-                )}
-              </TextField>
-
-              <TextField
-                isRequired
-                minLength={8}
-                name="password"
-                onChange={(value) =>
-                  setPasswordInput(value.replace(PASSWORD_DISALLOWED_CHARS, ""))
-                }
-                type={showPassword ? "text" : "password"}
-                validate={(value) =>
-                  value.length < 8
-                    ? "Пароль должен содержать не менее 8 символов"
-                    : null
-                }
-                value={passwordInput}
-              >
-                <Label>Пароль</Label>
-                <InputGroup variant="secondary">
-                  <InputGroup.Input
-                    autoComplete="new-password"
-                    placeholder="Минимум 8 символов"
+                <TextField
+                  isRequired
+                  isInvalid={Boolean(emailError)}
+                  name="email"
+                  type="email"
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value) {
+                      setEmailError(
+                        EMAIL_PATTERN.test(value)
+                          ? null
+                          : "Введите корректный email",
+                      );
+                    }
+                  }}
+                  onChange={() => setEmailError(null)}
+                >
+                  <Label>Email</Label>
+                  <Input
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    variant="secondary"
                   />
-                  <InputGroup.Suffix>
-                    <ToggleButton
-                      aria-label={
-                        showPassword ? "Скрыть пароль" : "Показать пароль"
-                      }
-                      isIconOnly
-                      isSelected={showPassword}
-                      onChange={setShowPassword}
-                      size="sm"
-                      variant="ghost"
-                    >
-                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                    </ToggleButton>
-                  </InputGroup.Suffix>
-                </InputGroup>
-                <Description>
-                  Не менее 8 символов. Латиница, цифры и спецсимволы
-                </Description>
-                <FieldError />
-              </TextField>
-            </div>
-          </Card.Content>
+                  {emailError ? (
+                    <FieldError>{emailError}</FieldError>
+                  ) : (
+                    <FieldError />
+                  )}
+                </TextField>
 
-          <Card.Footer className="mt-2 flex flex-col gap-2">
-            <Button className="w-full" isPending={isPending} type="submit">
-              {isPending ? "Регистрация..." : "Зарегистрироваться"}
-            </Button>
-          </Card.Footer>
-        </Form>
-      </Card>
+                <TextField
+                  isRequired
+                  minLength={8}
+                  name="password"
+                  onChange={(value) =>
+                    setPasswordInput(
+                      value.replace(PASSWORD_DISALLOWED_CHARS, ""),
+                    )
+                  }
+                  type={showPassword ? "text" : "password"}
+                  validate={(value) =>
+                    value.length < 8
+                      ? "Пароль должен содержать не менее 8 символов"
+                      : null
+                  }
+                  value={passwordInput}
+                >
+                  <Label>Пароль</Label>
+                  <InputGroup variant="secondary">
+                    <InputGroup.Input
+                      autoComplete="new-password"
+                      placeholder="Минимум 8 символов"
+                    />
+                    <InputGroup.Suffix>
+                      <ToggleButton
+                        aria-label={
+                          showPassword ? "Скрыть пароль" : "Показать пароль"
+                        }
+                        className="size-11"
+                        isIconOnly
+                        isSelected={showPassword}
+                        onChange={setShowPassword}
+                        size="lg"
+                        variant="ghost"
+                      >
+                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                      </ToggleButton>
+                    </InputGroup.Suffix>
+                  </InputGroup>
+                  <Description>
+                    Не менее 8 символов. Латиница, цифры и спецсимволы
+                  </Description>
+                  <FieldError />
+                </TextField>
+              </div>
+            </Card.Content>
+
+            <Card.Footer className="mt-2 flex flex-col gap-2">
+              <Button
+                className="h-11 w-full"
+                isPending={isPending}
+                type="submit"
+              >
+                {isPending ? "Регистрация..." : "Зарегистрироваться"}
+              </Button>
+            </Card.Footer>
+          </Form>
+        </Card>
+      </div>
     </main>
   );
 }
