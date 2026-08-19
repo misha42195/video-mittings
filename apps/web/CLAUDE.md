@@ -25,8 +25,11 @@ Next.js App Router project (`src/app`), TypeScript, Tailwind CSS v4 (via `@tailw
 
 UI components come from `@heroui/react` (v3 — no provider needed, compound components like `Card.Header`); styles are wired via `@import "@heroui/styles";` in `globals.css` alongside Tailwind.
 
-- `src/lib/api.ts` — thin fetch-based client for `apps/api`. Base URL from `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`, see `.env.example`). Exports typed functions per endpoint (e.g. `registerUser`) and an `ApiError` (carries HTTP `status`) so callers can branch on specific codes (e.g. 409 for a duplicate email).
-- `src/app/register/page.tsx` — registration page (`POST /auth/register`): email/password form built from HeroUI `Form`/`TextField`/`Card`, calls `registerUser`, stores the returned JWT in `localStorage` (`access_token`) and redirects to `/` on success.
+- `src/lib/api.ts` — thin fetch-based client for `apps/api`. Base URL from `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`, see `.env.example`). Exports typed functions per endpoint (`registerUser`, `loginUser`, `listMeetings`, `createMeeting`) and an `ApiError` (carries HTTP `status`) so callers can branch on specific codes (e.g. 409 for a duplicate email, 401 for an expired/invalid session).
+- `src/lib/auth.ts` — session storage helper shared by every page that reads/writes the logged-in user: `saveSession`/`getSession`/`clearSession` wrap `localStorage` (`access_token` + `user_email` keys). `getSession` only works client-side, so pages read it inside a `useEffect`, not during render.
+- `src/app/register/page.tsx` — registration page (`POST /auth/register`): email/password form built from HeroUI `Form`/`TextField`/`Card`, calls `registerUser`, saves the session via `saveSession`, redirects to `/` on success. Links to `/login` for existing users.
+- `src/app/login/page.tsx` — login page (`POST /auth/login`): same form pattern, calls `loginUser`, saves the session, redirects to `/`. 401 is shown inline as "wrong email or password".
+- `src/app/page.tsx` — home page: redirects to `/login` if there's no session (checked client-side post-mount). Shows an email greeting, the full meeting list plus a "3 most recent" list (both via `listMeetings`), a HeroUI `Modal` form to create a meeting (`createMeeting`), and a logout button (`clearSession` + redirect to `/login`). Any `listMeetings`/`createMeeting` call that 401s clears the session and redirects to `/login`.
 
 The api's CORS policy (`CORS_ALLOW_ORIGINS` in `apps/api/src/api/config.py`) must include this app's origin for browser calls to succeed — see `apps/api/CLAUDE.md`.
 

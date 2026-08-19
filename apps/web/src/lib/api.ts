@@ -15,6 +15,14 @@ export class ApiError extends Error {
   }
 }
 
+export type Meeting = {
+  id: number;
+  title: string;
+  description: string | null;
+  scheduled_at: string;
+  created_at: string;
+};
+
 export async function registerUser(
   email: string,
   password: string,
@@ -30,6 +38,55 @@ export async function registerUser(
   }
 
   return (await res.json()) as Token;
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<Token> {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ username: email, password }),
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  return (await res.json()) as Token;
+}
+
+export async function listMeetings(token: string): Promise<Meeting[]> {
+  const res = await fetch(`${API_BASE_URL}/meetings`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  return (await res.json()) as Meeting[];
+}
+
+export async function createMeeting(
+  token: string,
+  meeting: { title: string; description: string | null; scheduled_at: string },
+): Promise<Meeting> {
+  const res = await fetch(`${API_BASE_URL}/meetings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(meeting),
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  return (await res.json()) as Meeting;
 }
 
 async function extractErrorMessage(res: Response): Promise<string> {

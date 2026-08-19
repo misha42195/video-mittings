@@ -7,7 +7,6 @@ import {
   Alert,
   Button,
   Card,
-  Description,
   FieldError,
   Form,
   Input,
@@ -17,17 +16,13 @@ import {
   ToggleButton,
 } from "@heroui/react";
 
-import { ApiError, registerUser } from "@/lib/api";
+import { ApiError, loginUser } from "@/lib/api";
 import { saveSession } from "@/lib/auth";
 
 // Practical email check: RFC 5321-ish local part + domain made of valid
 // labels (no leading/trailing hyphen, 1-63 chars each) with at least one dot.
 const EMAIL_PATTERN =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-
-// Latin letters, digits, and standard ASCII punctuation — blocks spaces,
-// Cyrillic, emoji, and other non-ASCII input in the password field.
-const PASSWORD_DISALLOWED_CHARS = /[^\x21-\x7E]/g;
 
 function EyeIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -66,13 +61,12 @@ function EyeOffIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -90,12 +84,12 @@ export default function RegisterPage() {
 
     setIsPending(true);
     try {
-      const token = await registerUser(email, password);
+      const token = await loginUser(email, password);
       saveSession(token.access_token, email);
       router.push("/");
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        setEmailError("Пользователь с таким email уже зарегистрирован");
+      if (error instanceof ApiError && error.status === 401) {
+        setFormError("Неверный email или пароль");
       } else if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
@@ -122,9 +116,9 @@ export default function RegisterPage() {
 
         <Card className="relative w-full">
           <Card.Header>
-            <Card.Title>Создать аккаунт</Card.Title>
+            <Card.Title>Вход</Card.Title>
             <Card.Description>
-              Введите email и пароль, чтобы зарегистрироваться
+              Введите email и пароль, чтобы войти
             </Card.Description>
           </Card.Header>
 
@@ -170,28 +164,13 @@ export default function RegisterPage() {
                   )}
                 </TextField>
 
-                <TextField
-                  isRequired
-                  minLength={8}
-                  name="password"
-                  onChange={(value) =>
-                    setPasswordInput(
-                      value.replace(PASSWORD_DISALLOWED_CHARS, ""),
-                    )
-                  }
-                  type={showPassword ? "text" : "password"}
-                  validate={(value) =>
-                    value.length < 8
-                      ? "Пароль должен содержать не менее 8 символов"
-                      : null
-                  }
-                  value={passwordInput}
-                >
+                <TextField isRequired name="password">
                   <Label>Пароль</Label>
                   <InputGroup variant="secondary">
                     <InputGroup.Input
-                      autoComplete="new-password"
-                      placeholder="Минимум 8 символов"
+                      autoComplete="current-password"
+                      placeholder="Введите пароль"
+                      type={showPassword ? "text" : "password"}
                     />
                     <InputGroup.Suffix>
                       <ToggleButton
@@ -209,9 +188,6 @@ export default function RegisterPage() {
                       </ToggleButton>
                     </InputGroup.Suffix>
                   </InputGroup>
-                  <Description>
-                    Не менее 8 символов. Латиница, цифры и спецсимволы
-                  </Description>
                   <FieldError />
                 </TextField>
               </div>
@@ -223,12 +199,12 @@ export default function RegisterPage() {
                 isPending={isPending}
                 type="submit"
               >
-                {isPending ? "Регистрация..." : "Зарегистрироваться"}
+                {isPending ? "Вход..." : "Войти"}
               </Button>
               <p className="text-center text-sm text-muted">
-                Уже есть аккаунт?{" "}
-                <Link className="font-medium text-link" href="/login">
-                  Войти
+                Нет аккаунта?{" "}
+                <Link className="font-medium text-link" href="/register">
+                  Зарегистрироваться
                 </Link>
               </p>
             </Card.Footer>
