@@ -4,9 +4,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.auth.router import router as auth_router
 from api.config import get_settings
 from api.database import Base, engine
-from api.routers.auth import router as auth_router
 from api.routers.meetings import router as meetings_router
 
 

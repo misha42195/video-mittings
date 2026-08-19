@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.auth.dependencies import CurrentUser
 from api.commands import CreateMeetingCommand, CreateMeetingHandler
 from api.database import get_db
-from api.dependencies import CurrentUser
 from api.exceptions import MeetingNotFoundError
 from api.queries import (
     GetMeetingHandler,

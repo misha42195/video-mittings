@@ -17,3 +17,6 @@ __pycache__/
 
 # local env
 .env
+
+# local notes
+apps/api/docs/cqrs-vs-repository.md

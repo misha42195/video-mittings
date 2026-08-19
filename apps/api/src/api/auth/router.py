@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.commands import RegisterUserCommand, RegisterUserHandler
+from api.auth.commands import RegisterUserCommand, RegisterUserHandler
+from api.auth.exceptions import InvalidCredentialsError
+from api.auth.queries import AuthenticateUserHandler, AuthenticateUserQuery
+from api.auth.schemas import Token, UserRegister
 from api.database import get_db
-from api.exceptions import EmailAlreadyRegisteredError, InvalidCredentialsError
-from api.queries import AuthenticateUserHandler, AuthenticateUserQuery
-from api.schemas import Token, UserRegister
+from api.users.exceptions import EmailAlreadyRegisteredError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

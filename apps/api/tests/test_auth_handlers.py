@@ -1,9 +1,10 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.commands import RegisterUserCommand, RegisterUserHandler
-from api.exceptions import EmailAlreadyRegisteredError, InvalidCredentialsError
-from api.queries import AuthenticateUserHandler, AuthenticateUserQuery
+from api.auth.commands import RegisterUserCommand, RegisterUserHandler
+from api.auth.exceptions import InvalidCredentialsError
+from api.auth.queries import AuthenticateUserHandler, AuthenticateUserQuery
+from api.users.exceptions import EmailAlreadyRegisteredError
 
 
 async def test_register_user_handler_creates_user_and_returns_token(db: AsyncSession) -> None:
