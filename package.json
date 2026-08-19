@@ -23,9 +23,13 @@
     "typecheck:web": "npm run typecheck --workspace=web",
     "typecheck:api": "cd apps/api && uv run mypy src",
     "test": "npm run test:api",
-    "test:api": "cd apps/api && uv run pytest"
+    "test:api": "cd apps/api && uv run pytest",
+    "test:api:e2e": "cd apps/api && uv run pytest -k e2e",
+    "test:api:unit": "cd apps/api && uv run pytest -k \"not e2e\"",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7"
   }
 }

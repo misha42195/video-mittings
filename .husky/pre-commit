@@ -1,0 +1,5 @@
+npm run lint
+
+if git diff --cached --name-only | grep -q '^apps/api/'; then
+  npm run test:api:e2e
+fi

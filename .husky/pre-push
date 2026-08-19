@@ -1,0 +1,5 @@
+npm run lint
+
+docker compose up -d postgres
+
+npm run test
