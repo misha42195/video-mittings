@@ -58,10 +58,15 @@ class LocalStorageService:
         return relative_path, stored_filename, size
 
     async def delete(self, relative_path: str) -> None:
+        # defense-in-depth: prevent traversal even though path is from DB
+        if ".." in Path(relative_path).parts:
+            return
         path = self._root / relative_path
         exists = await anyio.to_thread.run_sync(path.exists)
         if exists:
             await anyio.to_thread.run_sync(lambda: path.unlink(missing_ok=True))
 
     def absolute_path(self, relative_path: str) -> Path:
+        if ".." in Path(relative_path).parts:
+            raise ValueError("Invalid storage path")
         return self._root / relative_path

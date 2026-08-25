@@ -210,18 +210,22 @@ export async function downloadMeetingFile(
     throw new ApiError(await extractErrorMessage(res), res.status);
   }
 
+  // Note: Bearer auth requires fetch+blob, so whole file is in RAM. For 100MB this is heavy but unavoidable without presigned URL.
   const blob = await res.blob();
   const disposition = res.headers.get("content-disposition") ?? "";
   let filename = "download";
-  const match =
-    disposition.match(/filename="([^"]+)"/) ??
-    disposition.match(/filename\*=UTF-8''([^;]+)/);
+  // RFC 5987 filename* first, then quoted, then unquoted
+  let match = disposition.match(/filename\*=UTF-8''([^;\s]+)/i);
   if (match) {
     try {
       filename = decodeURIComponent(match[1]);
     } catch {
       filename = match[1];
     }
+  } else {
+    match = disposition.match(/filename="([^"]+)"/);
+    if (!match) match = disposition.match(/filename=([^;\s]+)/);
+    if (match) filename = match[1];
   }
   return { blob, filename };
 }

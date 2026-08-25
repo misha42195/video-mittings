@@ -13,6 +13,14 @@ from api.meeting_files.storage import LocalStorageService
 from api.models import Meeting
 
 
+async def _require_owned_meeting(db: AsyncSession, meeting_id: int, owner_id: int) -> None:
+    meeting = await db.scalar(
+        select(Meeting).where(Meeting.id == meeting_id, Meeting.owner_id == owner_id)
+    )
+    if meeting is None:
+        raise MeetingNotFoundError()
+
+
 @dataclass(frozen=True, slots=True)
 class UploadMeetingFileCommand:
     meeting_id: int
@@ -26,14 +34,7 @@ class UploadMeetingFileHandler:
         self._storage = storage or LocalStorageService()
 
     async def handle(self, command: UploadMeetingFileCommand) -> MeetingFile:
-        # Ownership check — 404 if not owned or not exists
-        meeting = await self._db.scalar(
-            select(Meeting).where(
-                Meeting.id == command.meeting_id, Meeting.owner_id == command.owner_id
-            )
-        )
-        if meeting is None:
-            raise MeetingNotFoundError
+        await _require_owned_meeting(self._db, command.meeting_id, command.owner_id)
 
         # Validation: extension and content_type
         settings = get_settings()
@@ -95,13 +96,7 @@ class DeleteMeetingFileHandler:
         self._storage = storage or LocalStorageService()
 
     async def handle(self, command: DeleteMeetingFileCommand) -> None:
-        meeting = await self._db.scalar(
-            select(Meeting).where(
-                Meeting.id == command.meeting_id, Meeting.owner_id == command.owner_id
-            )
-        )
-        if meeting is None:
-            raise MeetingNotFoundError
+        await _require_owned_meeting(self._db, command.meeting_id, command.owner_id)
 
         file = await self._db.scalar(
             select(MeetingFile).where(
@@ -109,10 +104,14 @@ class DeleteMeetingFileHandler:
             )
         )
         if file is None:
-            raise FileNotFoundError
+            raise FileNotFoundError()
 
         storage_path = file.storage_path
         await self._db.delete(file)
         await self._db.commit()
         # delete from disk after DB commit — if file already missing, keep 204 (idempotent)
-        await self._storage.delete(storage_path)
+        try:
+            await self._storage.delete(storage_path)
+        except OSError:
+            # log and keep 204 even if disk delete fails
+            pass

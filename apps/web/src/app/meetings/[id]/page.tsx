@@ -38,6 +38,45 @@ function fileTypeIcon(filename: string): string {
   return "📎";
 }
 
+function DownloadIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <path d="M12 3v13" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" />
+    </svg>
+  );
+}
+
+function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      {...props}
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
 const ALLOWED_EXTS = new Set([".mp4", ".mov", ".wav", ".mp3", ".pdf", ".docx"]);
 const MAX_SIZE = 100 * 1024 * 1024;
 
@@ -208,7 +247,7 @@ export default function MeetingPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         clearSession();
@@ -393,21 +432,25 @@ export default function MeetingPage() {
                         <Button
                           size="sm"
                           variant="secondary"
+                          isIconOnly
+                          aria-label="Скачать"
                           data-testid="download-button"
                           onPress={() => handleDownload(f)}
                         >
-                          Скачать
+                          <DownloadIcon className="size-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="secondary"
+                          isIconOnly
+                          aria-label="Удалить"
                           data-testid="delete-button"
                           onPress={() => {
                             setDeleteError(null);
                             setFileToDelete(f);
                           }}
                         >
-                          Удалить
+                          <TrashIcon className="size-4" />
                         </Button>
                       </div>
                     </li>

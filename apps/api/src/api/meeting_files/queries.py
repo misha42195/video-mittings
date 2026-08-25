@@ -9,6 +9,14 @@ from api.meeting_files.models import MeetingFile
 from api.models import Meeting
 
 
+async def _require_owned_meeting(db: AsyncSession, meeting_id: int, owner_id: int) -> None:
+    meeting = await db.scalar(
+        select(Meeting).where(Meeting.id == meeting_id, Meeting.owner_id == owner_id)
+    )
+    if meeting is None:
+        raise MeetingNotFoundError()
+
+
 @dataclass(frozen=True, slots=True)
 class ListMeetingFilesQuery:
     meeting_id: int
@@ -20,13 +28,7 @@ class ListMeetingFilesHandler:
         self._db = db
 
     async def handle(self, query: ListMeetingFilesQuery) -> list[MeetingFile]:
-        meeting = await self._db.scalar(
-            select(Meeting).where(
-                Meeting.id == query.meeting_id, Meeting.owner_id == query.owner_id
-            )
-        )
-        if meeting is None:
-            raise MeetingNotFoundError
+        await _require_owned_meeting(self._db, query.meeting_id, query.owner_id)
 
         result = await self._db.scalars(
             select(MeetingFile)
@@ -48,13 +50,7 @@ class GetMeetingFileHandler:
         self._db = db
 
     async def handle(self, query: GetMeetingFileQuery) -> MeetingFile:
-        meeting = await self._db.scalar(
-            select(Meeting).where(
-                Meeting.id == query.meeting_id, Meeting.owner_id == query.owner_id
-            )
-        )
-        if meeting is None:
-            raise MeetingNotFoundError
+        await _require_owned_meeting(self._db, query.meeting_id, query.owner_id)
 
         file = await self._db.scalar(
             select(MeetingFile).where(
@@ -62,5 +58,5 @@ class GetMeetingFileHandler:
             )
         )
         if file is None:
-            raise FileNotFoundError
+            raise FileNotFoundError()
         return file

@@ -22,6 +22,6 @@ class AuthenticateUserHandler:
     async def handle(self, query: AuthenticateUserQuery) -> Token:
         user = await GetUserByEmailHandler(self._db).handle(GetUserByEmailQuery(email=query.login))
         if user is None or not verify_password(query.password, user.hashed_password):
-            raise InvalidCredentialsError
+            raise InvalidCredentialsError()
 
         return Token(access_token=create_access_token(subject=str(user.id)))
