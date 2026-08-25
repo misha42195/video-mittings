@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Spinner } from "@heroui/react";
@@ -38,9 +40,10 @@ const ALLOWED_EXTS = new Set([".mp4", ".mov", ".wav", ".mp3", ".pdf", ".docx"]);
 const MAX_SIZE = 100 * 1024 * 1024;
 
 export default function MeetingPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ id: string | string[] }>();
   const router = useRouter();
-  const meetingId = Number(params.id);
+  const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const meetingId = Number(rawId);
 
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
@@ -63,12 +66,19 @@ export default function MeetingPage() {
       router.replace("/login");
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(current);
   }, [router]);
 
   useEffect(() => {
-    if (!session || !Number.isFinite(meetingId)) return;
+    if (!session) return;
+
+    if (!Number.isFinite(meetingId)) {
+      setMeetingError("Встреча не найдена");
+      setFilesError("Встреча не найдена");
+      setIsLoadingMeeting(false);
+      setIsLoadingFiles(false);
+      return;
+    }
 
     let cancelled = false;
 
@@ -81,6 +91,8 @@ export default function MeetingPage() {
         if (error instanceof ApiError && error.status === 401) {
           clearSession();
           router.replace("/login");
+          setIsLoadingMeeting(false);
+          setIsLoadingFiles(false);
           return;
         }
         if (error instanceof ApiError && error.status === 404) {
@@ -106,6 +118,8 @@ export default function MeetingPage() {
         if (error instanceof ApiError && error.status === 401) {
           clearSession();
           router.replace("/login");
+          setIsLoadingMeeting(false);
+          setIsLoadingFiles(false);
           return;
         }
         if (error instanceof ApiError && error.status === 404) {

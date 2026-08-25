@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,7 @@ from api.routers.meetings import router as meetings_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    Path(get_settings().storage_root).mkdir(parents=True, exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
