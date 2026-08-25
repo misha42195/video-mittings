@@ -16,6 +16,8 @@ import {
   TextField,
 } from "@heroui/react";
 
+import Link from "next/link";
+
 import { ApiError, createMeeting, listMeetings, type Meeting } from "@/lib/api";
 import { clearSession, getSession, type Session } from "@/lib/auth";
 
@@ -73,16 +75,21 @@ function MeetingList({
     <ul className="flex flex-col gap-3">
       {meetings.map((meeting) => (
         <li
-          className="rounded-lg border border-border px-4 py-3"
           key={meeting.id}
+          className="rounded-lg border border-border px-4 py-3"
         >
-          <p className="font-medium">{meeting.title}</p>
-          {meeting.description ? (
-            <p className="mt-1 text-sm text-muted">{meeting.description}</p>
-          ) : null}
-          <p className="mt-2 text-xs text-muted">
-            {dateFormatter.format(new Date(meeting.scheduled_at))}
-          </p>
+          <Link
+            href={`/meetings/${meeting.id}`}
+            className="block hover:opacity-80"
+          >
+            <p className="font-medium">{meeting.title}</p>
+            {meeting.description ? (
+              <p className="mt-1 text-sm text-muted">{meeting.description}</p>
+            ) : null}
+            <p className="mt-2 text-xs text-muted">
+              {dateFormatter.format(new Date(meeting.scheduled_at))}
+            </p>
+          </Link>
         </li>
       ))}
     </ul>

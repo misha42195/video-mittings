@@ -89,6 +89,93 @@ export async function createMeeting(
   return (await res.json()) as Meeting;
 }
 
+export async function getMeeting(
+  token: string,
+  meetingId: number,
+): Promise<Meeting> {
+  const res = await fetch(`${API_BASE_URL}/meetings/${meetingId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  return (await res.json()) as Meeting;
+}
+
+export type MeetingFile = {
+  id: number;
+  meeting_id: number;
+  original_filename: string;
+  content_type: string;
+  size: number;
+  created_at: string;
+};
+
+export async function listMeetingFiles(
+  token: string,
+  meetingId: number,
+): Promise<MeetingFile[]> {
+  const res = await fetch(`${API_BASE_URL}/meetings/${meetingId}/files`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  return (await res.json()) as MeetingFile[];
+}
+
+export function uploadMeetingFile(
+  token: string,
+  meetingId: number,
+  file: File,
+  onProgress: (pct: number) => void,
+): Promise<MeetingFile> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE_URL}/meetings/${meetingId}/files`);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as MeetingFile;
+          resolve(data);
+        } catch {
+          reject(
+            new ApiError("Не удалось разобрать ответ сервера", xhr.status),
+          );
+        }
+      } else {
+        let message = "Что-то пошло не так, попробуйте ещё раз";
+        try {
+          const data = JSON.parse(xhr.responseText) as { detail?: string };
+          if (data.detail) message = data.detail;
+        } catch {
+          // ignore
+        }
+        reject(new ApiError(message, xhr.status));
+      }
+    };
+
+    xhr.onerror = () => reject(new ApiError("Сеть недоступна", 0));
+    xhr.onabort = () => reject(new ApiError("Загрузка отменена", 0));
+
+    const fd = new FormData();
+    fd.append("file", file);
+    xhr.send(fd);
+  });
+}
+
 async function extractErrorMessage(res: Response): Promise<string> {
   try {
     const data: unknown = await res.json();
