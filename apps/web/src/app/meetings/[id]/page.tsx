@@ -102,6 +102,7 @@ export default function MeetingPage() {
   const [fileToDelete, setFileToDelete] = useState<MeetingFile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -186,20 +187,13 @@ export default function MeetingPage() {
     };
   }, [session, meetingId, router]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !session) return;
-
-    // reset input to allow re-selecting same file
-    e.target.value = "";
+  const handleUploadFile = async (file: File) => {
+    if (!session) return;
     setUploadError(null);
 
-    // client-side validation
     const ext = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
     if (!ALLOWED_EXTS.has(ext)) {
-      setUploadError(
-        "Недопустимый тип файла. Разрешены: docx, mov, mp3, mp4, pdf, wav",
-      );
+      setUploadError("Недопустимый тип файла. Разрешены: docx, mov, mp3, mp4, pdf, wav");
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -211,14 +205,9 @@ export default function MeetingPage() {
     setUploadProgress(0);
 
     try {
-      const uploaded = await uploadMeetingFile(
-        session.token,
-        meetingId,
-        file,
-        (pct) => {
-          setUploadProgress(pct);
-        },
-      );
+      const uploaded = await uploadMeetingFile(session.token, meetingId, file, (pct) => {
+        setUploadProgress(pct);
+      });
       setFiles((prev) => (prev ? [...prev, uploaded] : [uploaded]));
       setUploadProgress(null);
     } catch (error) {
@@ -227,13 +216,36 @@ export default function MeetingPage() {
         router.replace("/login");
         return;
       }
-      setUploadError(
-        error instanceof ApiError ? error.message : "Не удалось загрузить файл",
-      );
+      setUploadError(error instanceof ApiError ? error.message : "Не удалось загрузить файл");
       setUploadProgress(null);
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    await handleUploadFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isUploading) setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isUploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) await handleUploadFile(file);
   };
 
   const handleDownload = async (file: MeetingFile) => {
@@ -352,17 +364,56 @@ export default function MeetingPage() {
               disabled={isUploading}
             />
 
-            <div className="flex items-center gap-3">
+            <div
+              data-testid="dropzone"
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+                isDragOver ? "border-accent bg-accent/5" : "border-border bg-muted/20 hover:border-accent/50"
+              } ${isUploading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              aria-label="Зона загрузки файла"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+            >
+              <div className="flex size-10 items-center justify-center rounded-full bg-accent/10">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  className="size-5 text-accent"
+                  aria-hidden
+                >
+                  <path d="M12 16V3" />
+                  <path d="M7 8l5-5 5 5" />
+                  <path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4" />
+                </svg>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">
+                  {isDragOver ? "Отпустите файл" : "Перетащите файл сюда"}
+                </p>
+                <p className="text-xs text-muted">или нажмите, чтобы выбрать</p>
+              </div>
               <Button
+                size="sm"
+                variant="secondary"
                 isDisabled={isUploading}
                 onPress={() => fileInputRef.current?.click()}
-                variant="secondary"
+                onClick={(e) => e.stopPropagation()}
               >
                 Выбрать файл
               </Button>
-              {isUploading ? (
-                <Spinner size="sm" aria-label="Загрузка файла" />
-              ) : null}
+              {isUploading ? <Spinner size="sm" aria-label="Загрузка файла" /> : null}
             </div>
 
             {uploadProgress !== null ? (
