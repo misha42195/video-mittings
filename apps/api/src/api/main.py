@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth.router import router as auth_router
 from api.config import get_settings
 from api.database import Base, engine
+from api.meeting_files.models import MeetingFile  # noqa: F401 — ensure table is registered
+from api.routers.meeting_files import router as meeting_files_router
 from api.routers.meetings import router as meetings_router
 
 
@@ -26,6 +28,7 @@ app.add_middleware(
 )
 app.include_router(auth_router)
 app.include_router(meetings_router)
+app.include_router(meeting_files_router)
 
 
 @app.get("/health")

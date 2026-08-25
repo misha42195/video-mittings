@@ -36,3 +36,7 @@ Each of `lint`, `format`, `typecheck`, and `build` also has `:web` / `:api` vari
 ## Keeping docs in sync
 
 When a change alters the project's architecture — a new app or package, a moved/renamed directory, a swapped framework or package manager, a new/changed root or per-app script — update this file and the relevant `apps/*/CLAUDE.md` (and `README.md`) in the same change. Stale docs here are worse than no docs, since future Claude Code sessions treat this file as ground truth.
+
+## File upload
+Use this research for it: @docs/research-meeting-upload.md
+

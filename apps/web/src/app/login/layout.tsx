@@ -5,6 +5,6 @@ export const metadata: Metadata = {
   description: "Войти по email и паролю",
 };
 
-export default function LoginLayout({ children }: LayoutProps<"/login">) {
+export default function LoginLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

@@ -1,10 +1,13 @@
 import os
+import shutil
 from collections.abc import AsyncIterator, Awaitable, Callable
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from api.config import get_settings
 from api.database import Base, get_db
 from api.main import app
 
@@ -33,6 +36,14 @@ async def _clean_tables() -> AsyncIterator[None]:
     async with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             await conn.execute(table.delete())
+    # clean file storage (orphan files from meeting_files tests)
+    storage_root = Path(get_settings().storage_root)
+    if storage_root.exists():
+        for child in storage_root.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child)
+            else:
+                child.unlink(missing_ok=True)
 
 
 @pytest.fixture

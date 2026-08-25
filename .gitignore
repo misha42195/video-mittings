@@ -23,3 +23,8 @@ apps/api/docs/cqrs-vs-repository.md
 
 # Playwright screenshots (code review, manual QA)
 .playwright-screenshots/
+notes/
+
+# File storage (local disk — meeting uploads)
+storage/
+apps/api/storage/
