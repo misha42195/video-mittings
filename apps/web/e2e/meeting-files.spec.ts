@@ -36,8 +36,7 @@ async function loginViaStorage(
   token: string,
   email: string,
 ) {
-  await page.goto("/");
-  await page.evaluate(
+  await page.addInitScript(
     ({ t, e }: { t: string; e: string }) => {
       localStorage.setItem("access_token", t);
       localStorage.setItem("user_email", e);

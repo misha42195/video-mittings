@@ -37,7 +37,7 @@ class UploadMeetingFileHandler:
 
         # Validation: extension and content_type
         settings = get_settings()
-        original_filename = command.upload_file.filename or ""
+        original_filename = (command.upload_file.filename or "").strip()
         ext = Path(original_filename).suffix.lower()
 
         if not original_filename or ext not in settings.allowed_extensions:
@@ -58,6 +58,10 @@ class UploadMeetingFileHandler:
         relative_path, stored_filename, size = await self._storage.save(
             command.upload_file, command.meeting_id
         )
+
+        if size == 0:
+            await self._storage.delete(relative_path)
+            raise FileTypeNotAllowedError("Пустой файл не разрешен")
 
         meeting_file = MeetingFile(
             meeting_id=command.meeting_id,
