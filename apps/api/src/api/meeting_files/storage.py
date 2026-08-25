@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import aiofiles  # type: ignore[import-untyped]
+import anyio.to_thread
 from fastapi import UploadFile
 
 from api.config import get_settings
@@ -12,7 +13,6 @@ class LocalStorageService:
     def __init__(self) -> None:
         settings = get_settings()
         self._root = Path(settings.storage_root)
-        self._max_size = settings.max_file_size
 
     @property
     def root(self) -> Path:
@@ -20,7 +20,7 @@ class LocalStorageService:
 
     @property
     def max_size(self) -> int:
-        return self._max_size
+        return get_settings().max_file_size
 
     async def save(self, file: UploadFile, meeting_id: int) -> tuple[str, str, int]:
         """Save upload to disk chunk-by-chunk, return (relative_path, stored_filename, size)."""
@@ -29,10 +29,10 @@ class LocalStorageService:
         stored_filename = f"{uuid4().hex}{ext}"
         relative_path = f"meetings/{meeting_id}/{stored_filename}"
         dest = self._root / relative_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
+        await anyio.to_thread.run_sync(lambda: dest.parent.mkdir(parents=True, exist_ok=True))
 
         # Write to temp file first for atomicity
-        tmp_path = dest.with_suffix(dest.suffix + ".tmp")
+        tmp_path = dest.with_name(dest.name + ".tmp")
 
         size = 0
         try:
@@ -42,25 +42,26 @@ class LocalStorageService:
                     if not chunk:
                         break
                     size += len(chunk)
-                    if size > self._max_size:
-                        # cleanup handled in finally/except
+                    if size > self.max_size:
                         raise FileTooLargeError(
-                            f"Файл слишком большой. Максимум {self._max_size // (1024 * 1024)} МБ"
+                            f"Файл слишком большой. Максимум {self.max_size // (1024 * 1024)} МБ"
                         )
                     await out.write(chunk)
         except Exception:
-            if tmp_path.exists():
-                tmp_path.unlink(missing_ok=True)
+            exists = await anyio.to_thread.run_sync(tmp_path.exists)
+            if exists:
+                await anyio.to_thread.run_sync(lambda: tmp_path.unlink(missing_ok=True))
             raise
         else:
-            tmp_path.rename(dest)
+            await anyio.to_thread.run_sync(lambda: tmp_path.rename(dest))
 
         return relative_path, stored_filename, size
 
     async def delete(self, relative_path: str) -> None:
         path = self._root / relative_path
-        if path.exists():
-            path.unlink(missing_ok=True)
+        exists = await anyio.to_thread.run_sync(path.exists)
+        if exists:
+            await anyio.to_thread.run_sync(lambda: path.unlink(missing_ok=True))
 
     def absolute_path(self, relative_path: str) -> Path:
         return self._root / relative_path

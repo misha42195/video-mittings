@@ -77,7 +77,10 @@ async def test_upload_file_rejects_invalid_type(
 
 
 async def test_upload_file_rejects_too_large(
-    client: AsyncClient, auth_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+    db: AsyncSession,
 ) -> None:
     meeting_id = await _create_meeting(client, auth_headers)
 
@@ -95,7 +98,13 @@ async def test_upload_file_rejects_too_large(
     detail = resp.json()["detail"].lower()
     assert "слишком большой" in detail or "too large" in detail
 
-    monkeypatch.setattr(settings, "max_file_size", 100 * 1024 * 1024)
+    # Ensure no orphan file persisted in DB or on disk after rejection
+    files = await db.scalars(select(MeetingFile).where(MeetingFile.meeting_id == meeting_id))
+    assert list(files.all()) == []
+    storage_root = Path(get_settings().storage_root)
+    meetings_dir = storage_root / f"meetings/{meeting_id}"
+    if meetings_dir.exists():
+        assert not any(meetings_dir.iterdir())
 
 
 async def test_upload_file_rejects_missing_extension(

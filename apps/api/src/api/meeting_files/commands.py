@@ -45,11 +45,13 @@ class UploadMeetingFileHandler:
             raise FileTypeNotAllowedError(f"Недопустимый тип файла. Разрешены: {allowed}")
 
         content_type = command.upload_file.content_type or ""
-        # For docx, allow any content_type if extension is docx? Keep strict but allow empty?
-        # We validate if content_type is provided and not in allowed -> reject
-        # Some browsers send generic types, so we only reject clearly disallowed
-        if content_type and content_type not in settings.allowed_content_types:
-            # Special case: browsers may send "application/octet-stream" for docx/mp4 etc — reject
+        # Allow empty or generic octet-stream — rely on extension check for those cases
+        # Strict check only for explicit mime types
+        if (
+            content_type
+            and content_type != "application/octet-stream"
+            and content_type not in settings.allowed_content_types
+        ):
             allowed = ", ".join(sorted(e.lstrip(".") for e in settings.allowed_extensions))
             raise FileTypeNotAllowedError(f"Недопустимый тип файла. Разрешены: {allowed}")
 
@@ -66,6 +68,11 @@ class UploadMeetingFileHandler:
             size=size,
         )
         self._db.add(meeting_file)
-        await self._db.commit()
-        await self._db.refresh(meeting_file)
+        try:
+            await self._db.commit()
+            await self._db.refresh(meeting_file)
+        except Exception:
+            # orphan file cleanup — DB commit failed after file was written to disk
+            await self._storage.delete(relative_path)
+            raise
         return meeting_file

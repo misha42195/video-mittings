@@ -5,6 +5,6 @@ export const metadata: Metadata = {
   description: "Создать аккаунт: email и пароль",
 };
 
-export default function RegisterLayout({ children }: LayoutProps<"/register">) {
+export default function RegisterLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

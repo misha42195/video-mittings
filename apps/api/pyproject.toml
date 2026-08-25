@@ -15,7 +15,6 @@ dependencies = [
     "bcrypt>=4.2.1",
     "pydantic-settings>=2.15.0",
     "aiofiles>=25.1.0",
-    "httpx>=0.28.1",
 ]
 
 [build-system]
@@ -28,6 +27,7 @@ dev = [
     "ruff>=0.16.2",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",
+    "httpx>=0.28.1",
 ]
 
 [tool.ruff]

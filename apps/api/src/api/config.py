@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expires_minutes: int = 60
     cors_allow_origins: list[str] = ["http://localhost:3000"]
-    storage_root: Path = Path("storage")
+    storage_root: Path = Path(__file__).resolve().parents[2] / "storage"
     max_file_size: int = 100 * 1024 * 1024
     allowed_extensions: set[str] = {".mp4", ".mov", ".wav", ".mp3", ".pdf", ".docx"}
     allowed_content_types: set[str] = {
