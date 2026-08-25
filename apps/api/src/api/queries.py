@@ -40,5 +40,5 @@ class GetMeetingHandler:
             )
         )
         if meeting is None:
-            raise MeetingNotFoundError
+            raise MeetingNotFoundError()
         return meeting

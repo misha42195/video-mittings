@@ -247,7 +247,7 @@ export default function MeetingPage() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         clearSession();

@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import anyio.to_thread
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,14 +89,14 @@ async def download_meeting_file(
 
     storage = LocalStorageService()
     abs_path = storage.absolute_path(meeting_file.storage_path)
-    if not abs_path.exists():
+    exists = await anyio.to_thread.run_sync(abs_path.exists)
+    if not exists:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found")
 
     return FileResponse(
         path=abs_path,
         media_type=meeting_file.content_type,
         filename=meeting_file.original_filename,
-        headers={"Content-Disposition": f'attachment; filename="{meeting_file.original_filename}"'},
     )
 
 
