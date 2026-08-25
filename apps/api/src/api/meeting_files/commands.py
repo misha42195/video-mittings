@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config import get_settings
 from api.exceptions import MeetingNotFoundError
-from api.meeting_files.exceptions import FileTypeNotAllowedError
+from api.meeting_files.exceptions import FileNotFoundError, FileTypeNotAllowedError
 from api.meeting_files.models import MeetingFile
 from api.meeting_files.storage import LocalStorageService
 from api.models import Meeting
@@ -80,3 +80,39 @@ class UploadMeetingFileHandler:
             await self._storage.delete(relative_path)
             raise
         return meeting_file
+
+
+@dataclass(frozen=True, slots=True)
+class DeleteMeetingFileCommand:
+    meeting_id: int
+    file_id: int
+    owner_id: int
+
+
+class DeleteMeetingFileHandler:
+    def __init__(self, db: AsyncSession, storage: LocalStorageService | None = None) -> None:
+        self._db = db
+        self._storage = storage or LocalStorageService()
+
+    async def handle(self, command: DeleteMeetingFileCommand) -> None:
+        meeting = await self._db.scalar(
+            select(Meeting).where(
+                Meeting.id == command.meeting_id, Meeting.owner_id == command.owner_id
+            )
+        )
+        if meeting is None:
+            raise MeetingNotFoundError
+
+        file = await self._db.scalar(
+            select(MeetingFile).where(
+                MeetingFile.id == command.file_id, MeetingFile.meeting_id == command.meeting_id
+            )
+        )
+        if file is None:
+            raise FileNotFoundError
+
+        storage_path = file.storage_path
+        await self._db.delete(file)
+        await self._db.commit()
+        # delete from disk after DB commit — if file already missing, keep 204 (idempotent)
+        await self._storage.delete(storage_path)

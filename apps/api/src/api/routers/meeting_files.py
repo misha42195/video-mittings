@@ -1,15 +1,31 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth.dependencies import CurrentUser
 from api.database import get_db
 from api.exceptions import MeetingNotFoundError
-from api.meeting_files.commands import UploadMeetingFileCommand, UploadMeetingFileHandler
-from api.meeting_files.exceptions import FileTooLargeError, FileTypeNotAllowedError
-from api.meeting_files.queries import ListMeetingFilesHandler, ListMeetingFilesQuery
+from api.meeting_files.commands import (
+    DeleteMeetingFileCommand,
+    DeleteMeetingFileHandler,
+    UploadMeetingFileCommand,
+    UploadMeetingFileHandler,
+)
+from api.meeting_files.exceptions import (
+    FileNotFoundError,
+    FileTooLargeError,
+    FileTypeNotAllowedError,
+)
+from api.meeting_files.queries import (
+    GetMeetingFileHandler,
+    GetMeetingFileQuery,
+    ListMeetingFilesHandler,
+    ListMeetingFilesQuery,
+)
 from api.meeting_files.schemas import MeetingFileResponse
+from api.meeting_files.storage import LocalStorageService
 
 router = APIRouter(prefix="/meetings", tags=["meeting-files"])
 
@@ -53,3 +69,49 @@ async def list_meeting_files(
     except MeetingNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Meeting not found") from exc
     return [MeetingFileResponse.model_validate(f) for f in files]
+
+
+@router.get("/{meeting_id}/files/{file_id}/download")
+async def download_meeting_file(
+    meeting_id: int,
+    file_id: int,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> FileResponse:
+    query = GetMeetingFileQuery(meeting_id=meeting_id, file_id=file_id, owner_id=current_user.id)
+    try:
+        meeting_file = await GetMeetingFileHandler(db).handle(query)
+    except MeetingNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Meeting not found") from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found") from exc
+
+    storage = LocalStorageService()
+    abs_path = storage.absolute_path(meeting_file.storage_path)
+    if not abs_path.exists():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found")
+
+    return FileResponse(
+        path=abs_path,
+        media_type=meeting_file.content_type,
+        filename=meeting_file.original_filename,
+        headers={"Content-Disposition": f'attachment; filename="{meeting_file.original_filename}"'},
+    )
+
+
+@router.delete("/{meeting_id}/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_meeting_file(
+    meeting_id: int,
+    file_id: int,
+    db: DbDep,
+    current_user: CurrentUser,
+) -> None:
+    command = DeleteMeetingFileCommand(
+        meeting_id=meeting_id, file_id=file_id, owner_id=current_user.id
+    )
+    try:
+        await DeleteMeetingFileHandler(db).handle(command)
+    except MeetingNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Meeting not found") from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found") from exc

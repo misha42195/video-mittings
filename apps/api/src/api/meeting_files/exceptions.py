@@ -4,3 +4,7 @@ class FileTypeNotAllowedError(Exception):
 
 class FileTooLargeError(Exception):
     pass
+
+
+class FileNotFoundError(Exception):
+    pass

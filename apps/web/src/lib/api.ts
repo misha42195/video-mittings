@@ -176,6 +176,56 @@ export function uploadMeetingFile(
   });
 }
 
+export async function deleteMeetingFile(
+  token: string,
+  meetingId: number,
+  fileId: number,
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/meetings/${meetingId}/files/${fileId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+}
+
+export async function downloadMeetingFile(
+  token: string,
+  meetingId: number,
+  fileId: number,
+): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/meetings/${meetingId}/files/${fileId}/download`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+
+  if (!res.ok) {
+    throw new ApiError(await extractErrorMessage(res), res.status);
+  }
+
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") ?? "";
+  let filename = "download";
+  const match =
+    disposition.match(/filename="([^"]+)"/) ??
+    disposition.match(/filename\*=UTF-8''([^;]+)/);
+  if (match) {
+    try {
+      filename = decodeURIComponent(match[1]);
+    } catch {
+      filename = match[1];
+    }
+  }
+  return { blob, filename };
+}
+
 async function extractErrorMessage(res: Response): Promise<string> {
   try {
     const data: unknown = await res.json();

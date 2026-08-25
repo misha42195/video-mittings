@@ -4,10 +4,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Card, Spinner } from "@heroui/react";
+import { Alert, Button, Card, Modal, Spinner } from "@heroui/react";
 
 import {
   ApiError,
+  deleteMeetingFile,
+  downloadMeetingFile,
   getMeeting,
   listMeetingFiles,
   uploadMeetingFile,
@@ -57,6 +59,10 @@ export default function MeetingPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const [fileToDelete, setFileToDelete] = useState<MeetingFile | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -188,6 +194,48 @@ export default function MeetingPage() {
       setUploadProgress(null);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleDownload = async (file: MeetingFile) => {
+    if (!session) return;
+    try {
+      const { blob, filename } = await downloadMeetingFile(session.token, meetingId, file.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || file.original_filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.replace("/login");
+        return;
+      }
+      setFilesError(error instanceof ApiError ? error.message : "Не удалось скачать файл");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!session || !fileToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteMeetingFile(session.token, meetingId, fileToDelete.id);
+      setFiles((prev) => (prev ? prev.filter((f) => f.id !== fileToDelete.id) : prev));
+      setFileToDelete(null);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.replace("/login");
+        return;
+      }
+      setDeleteError(error instanceof ApiError ? error.message : "Не удалось удалить файл");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -325,30 +373,91 @@ export default function MeetingPage() {
                 Файлов пока нет
               </p>
             ) : (
-              <ul className="flex flex-col gap-2">
-                {files?.map((f) => (
-                  <li
-                    key={f.id}
-                    data-testid="file-item"
-                    className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span aria-hidden>
-                        {fileTypeIcon(f.original_filename)}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {f.original_filename}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted">
-                      <span>{formatSize(f.size)}</span>
-                      <span>
-                        {dateFormatter.format(new Date(f.created_at))}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="flex flex-col gap-2">
+                  {files?.map((f) => (
+                    <li
+                      key={f.id}
+                      data-testid="file-item"
+                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span aria-hidden>{fileTypeIcon(f.original_filename)}</span>
+                        <span className="text-sm font-medium">{f.original_filename}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="hidden sm:flex items-center gap-3 text-xs text-muted">
+                          <span>{formatSize(f.size)}</span>
+                          <span>{dateFormatter.format(new Date(f.created_at))}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          data-testid="download-button"
+                          onPress={() => handleDownload(f)}
+                        >
+                          Скачать
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          data-testid="delete-button"
+                          onPress={() => {
+                            setDeleteError(null);
+                            setFileToDelete(f);
+                          }}
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <Modal isOpen={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+                  <Modal.Backdrop>
+                    <Modal.Container>
+                      <Modal.Dialog className="sm:max-w-md">
+                        <Modal.CloseTrigger />
+                        <Modal.Header>
+                          <Modal.Heading>Удалить файл?</Modal.Heading>
+                        </Modal.Header>
+                        <Modal.Body>
+                          {deleteError ? (
+                            <Alert status="danger">
+                              <Alert.Indicator />
+                              <Alert.Content>
+                                <Alert.Description>{deleteError}</Alert.Description>
+                              </Alert.Content>
+                            </Alert>
+                          ) : null}
+                          <p className="text-sm text-muted">
+                            Вы уверены, что хотите удалить файл &quot;{fileToDelete?.original_filename}&quot;? Это действие нельзя отменить.
+                          </p>
+                        </Modal.Body>
+                        <Modal.Footer>
+                          <Button
+                            variant="secondary"
+                            slot="close"
+                            isDisabled={isDeleting}
+                            onPress={() => setFileToDelete(null)}
+                          >
+                            Отмена
+                          </Button>
+                          <Button
+                            variant="primary"
+                            data-testid="confirm-delete"
+                            isPending={isDeleting}
+                            onPress={handleConfirmDelete}
+                          >
+                            {isDeleting ? "Удаление..." : "Удалить"}
+                          </Button>
+                        </Modal.Footer>
+                      </Modal.Dialog>
+                    </Modal.Container>
+                  </Modal.Backdrop>
+                </Modal>
+              </>
             )}
           </Card.Content>
         </Card>
